@@ -6,7 +6,6 @@ from typing import Optional, List, Tuple, Union
 from ..autograd import NDArray
 from ..autograd import Op, Tensor, Value, TensorOp
 from ..autograd import TensorTuple, TensorTupleOp
-import numpy
 import needle as ndl
 
 # NOTE: we will import numpy as the array_api

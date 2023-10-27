@@ -88,12 +88,25 @@ class Linear(Module):
         self.out_features = out_features
 
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        self.use_bias = bias
+        w = init.kaiming_uniform(in_features, out_features)
+        # paramter is specific tesnor class for paramters that was
+        # given above
+        self.weight = Parameter(w, device=device, dtype=dtype)
+        if self.use_bias:
+            # fan_in == out_features and since b must ultimatley be 
+            # (1, out_features), fan_out == 1. 
+            b = ops.reshape(init.kaiming_uniform(out_features, 1), (1, out_features))
+            self.bias = Parameter(b, device=device, dtype=dtype)
         ### END YOUR SOLUTION
 
     def forward(self, X: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        y = ops.matmul(X, self.weight)
+        if self.use_bias:
+            bias = ops.broadcast_to(self.bias, y.shape)
+            y += bias
+        return y
         ### END YOUR SOLUTION
 
 
@@ -107,7 +120,7 @@ class Flatten(Module):
 class ReLU(Module):
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        return ops.relu(x)
         ### END YOUR SOLUTION
 
 
@@ -118,7 +131,9 @@ class Sequential(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
+        for module in self.modules:
+            x = module(x)
+        return x
         ### END YOUR SOLUTION
 
 
