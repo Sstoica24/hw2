@@ -31,11 +31,15 @@ class LogSumExp(TensorOp):
         ### BEGIN YOUR SOLUTION
         # Z is numpy array. Always want to keep dims true
         # (you find the max over an axis, a sum over an axis...)
-        max_z_original = array_api.max(Z, self.axes, keepdims=True) #ex1, (3,1,1)
-        max_z_reduce = array_api.max(Z, self.axes) # ex1, (3,)
-        # by not keeping dims = True, array_api.log(array_api.sum(array_api.exp(Z - max_z_original), self.axes)).shape
-        # will be (3,). Thus, output is (3,)
-        return array_api.log(array_api.sum(array_api.exp(Z - max_z_original), self.axes)) + max_z_reduce 
+        Z_max = array_api.max(Z, axis=self.axes, keepdims=True)
+        exp_Z = array_api.exp(Z - Z_max)
+        log_sum_exp = array_api.log(array_api.sum(exp_Z, axis=self.axes, keepdims=True)) + Z_max
+        new_dims = []
+        for elem in log_sum_exp.shape:
+            if elem != 1:
+                new_dims.append(elem)
+        new_shape = new_dims
+        return log_sum_exp.reshape(new_shape)
         ### END YOUR SOLUTION
 
     def gradient(self, out_grad, node):
