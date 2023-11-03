@@ -47,10 +47,21 @@ class LogSumExp(TensorOp):
         # the gradient is going to be the softmax_function
         # no need to overcomplicate and use ndl class. You can just convery a to numpy and
         # then just use numpy operations
-        a = node.inputs[0]
-        exp_a = array_api.exp(a.numpy() - array_api.max(a.numpy(), axis=self.axes, keepdims=True))
-        softamx = exp_a / array_api.sum(exp_a, axis=self.axes, keepdims=True)
-        return broadcast_to(out_grad, input.shape) * Tensor(softamx)
+        input, = node.inputs
+        z = array_api.max(input.numpy(), axis=self.axes, keepdims=True)
+        e = array_api.exp(input.numpy() - z)
+        e_sum = array_api.sum(e, axis=self.axes, keepdims=True)
+        prob = e / e_sum
+        new_shape = list(input.shape)
+        # (a, b) -> (1, a, 1, b)
+        if self.axes:
+            for i in self.axes:
+                new_shape[i] = 1
+            grad = reshape(out_grad, new_shape)
+        else:
+            grad = out_grad
+        
+        return broadcast_to(grad, input.shape) * Tensor(prob, dtype=grad.dtype)
         ### END YOUR SOLUTION
 
 

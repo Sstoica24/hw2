@@ -144,20 +144,9 @@ class Sequential(Module):
 class SoftmaxLoss(Module):
     def forward(self, logits: Tensor, y: Tensor):
         ### BEGIN YOUR SOLUTION
-        Z = logits
-        y_one_hot = init.one_hot(Z.shape[1], y, device=None, dtype="float32", requires_grad=False)
-        m = Z.shape[0]
-        exp_Z = ops.exp(Z)
-        #exp_Z is 2 dim, but summation would return 1D, so we need to make summation 2D
-        # based on how the code is written in the backward pass if you don't explicitley call broadcast
-        # then it doesn't know that broadcast was used. 
-        logSumExp = ops.logsumexp(Z)
-        # softmax_probs = exp_Z / ops.summation(exp_Z, axes=(1,)).reshape((exp_Z.shape[0], 1)).broadcast_to((exp_Z.shape) )
-        # Compute the loss for each sample in the batch
-        log_t = ops.log(logSumExp) * y_one_hot
-        loss = -ops.summation(log_t) / m
-        # Average the loss over all samples
-        return loss
+        # needed to look online to find relationship between logsumexp and softmax loss
+        one_hot_y = init.one_hot(logits.shape[1], y)
+        return (ops.summation(ops.logsumexp(logits, (1,)) / logits.shape[0]) - ops.summation(one_hot_y * logits / logits.shape[0]))
         ### END YOUR SOLUTION
 
 
@@ -180,24 +169,15 @@ class BatchNorm1d(Module):
         ### BEGIN YOUR SOLUTION
         # module has self.training
         if self.training:
-            # summing over batch_size ==> summing over axis = 0
-            # note, we do not need to reshape to 2D (x.shape[0], 1) because we are working
-            # with the batch size. 
-            # you can't set batch_mean = (x.sum((0,)) / x.shape[0]).broadcast_to(x.shape)
-            # because the tester expects batch_mean TO NOT BE SIZE BE SIZE OF x.shape (
-            # saw this while I was debugging). Same story for batch_var
-            batch_mean = x.sum((0,)) / x.shape[0]
-            batch_var = ((x - batch_mean.broadcast_to(x.shape))**2).sum((0,)) / x.shape[0]
-            norm = (x - batch_mean.broadcast_to(x.shape)) / (batch_var.broadcast_to(x.shape) + self.eps)**0.5
+            N = x.shape[0]
+            batch_mean = x.sum((0,)) / N
+            batch_var = ((x - batch_mean.broadcast_to(x.shape))**2).sum((0,)) / N
+            norm = (x - batch_mean.broadcast_to(x.shape)) / ((batch_var.broadcast_to(x.shape) + self.eps)**0.5)
             y = self.weight.broadcast_to(x.shape) * norm + self.bias.broadcast_to(x.shape)
-            # what is meant by the equation given is that x_old = old self.running_mean and 
-            # self.running_var and x_observed = the current batch_mean.data and batch_var.data.
-            # .data since batch_mean and batch_var are both tensors 
-            # no need to worry about broadcasting since these have no derivatives!
-            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean.data
-            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var.data
+            self.running_mean = (1 - self.momentum) * self.running_mean + self.momentum * batch_mean
+            self.running_var = (1 - self.momentum) * self.running_var + self.momentum * batch_var
         else:
-            y = (x - self.running_mean.broadcast_to(x.shape)) / (self.running_var.broadcast_to(x.shape) + self.eps)**0.5
+            y = (x - self.running_mean.broadcast_to(x.shape)) / ((self.running_var.broadcast_to(x.shape) + self.eps)**0.5)
         return y
         ### END YOUR SOLUTION
 
@@ -214,6 +194,10 @@ class LayerNorm1d(Module):
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
+        # not over batched dimensions (that is for batchNorm)
+        # so we need to reshape before broadcasting to preserve the 2D shape
+        # that x_mean and x_var must be (since we summed over class axis, we want
+        # shape to be (N,1) not (N,) )
         mean = (x.sum((1,))/x.shape[1]).reshape((x.shape[0], 1)).broadcast_to(x.shape)
         var = (((x - mean)**2).sum((1,))/x.shape[1]).reshape((x.shape[0], 1)).broadcast_to(x.shape)
         deno = (var + self.eps)**0.5
