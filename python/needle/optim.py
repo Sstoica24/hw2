@@ -22,18 +22,16 @@ class SGD(Optimizer):
         self.momentum = momentum
         self.u = {}
         self.weight_decay = weight_decay
-        self.params = params
+        # populate self.u
+        for w in self.params:
+            self.u[w] = 0
 
     def step(self):
         ### BEGIN YOUR SOLUTION
         for w in self.params:
-            if self.weight_decay > 0:
-                grad = w.grad.data + self.weight_decay * w.data
-            else:
-                grad = w.grad.data
-            self.u[w] = self.momentum * self.u[w] + (1 - self.momentum) * grad
-            w.data = w.data - self.lr * self.u[w]
-        ### END YOUR SOLUTION
+            self.u[w] = self.momentum * self.u[w] + (1 - self.momentum) * (w.grad.data + self.weight_decay * w.data)
+            # expected output is of type float32 and self.u[w].data is of type float64
+            w.data = w.data - self.lr * self.u[w].data.numpy().astype(np.float32)
 
     def clip_grad_norm(self, max_norm=0.25):
         """
@@ -66,19 +64,18 @@ class Adam(Optimizer):
         self.m = {}
         self.v = {}
 
+        # populate the dictonaries
+        for w in self.params:
+            self.m[w] = 0
+            self.v[w] = 0
+
     def step(self):
         ### BEGIN YOUR SOLUTION
-        # need to keep time
-        ### BEGIN YOUR SOLUTION
         self.t += 1
-        for weight in self.params:
-            if self.weight_decay > 0:
-                grad = weight.grad.data + self.weight_decay * weight.data
-            else:
-                grad = weight.grad.data
-            self.m[weight] = self.beta1 * self.m[weight] + (1 - self.beta1) * grad
-            self.v[weight] = self.beta2 * self.v[weight] + (1 - self.beta2) * (grad ** 2)
-            unbiased_m = self.m[weight] / (1 - self.beta1 ** self.t)
-            unbiased_v = self.v[weight] / (1 - self.beta2 ** self.t)
-            weight.data = weight.data - self.lr * unbiased_m / (unbiased_v**0.5 + self.eps)
-        ### END YOUR SOLUTION
+        for w in self.params:
+            grad = w.grad.data + self.weight_decay * w.data
+            self.m[w] = self.beta1 * self.m[w] + (1 - self.beta1) * grad
+            self.v[w] = self.beta2 * self.v[w] + (1 - self.beta2) * (grad ** 2)
+            unbiased_m = self.m[w] / (1 - self.beta1 ** self.t)
+            unbiased_v = self.v[w] / (1 - self.beta2 ** self.t)
+            w.data = w.data - self.lr * (unbiased_m.numpy().astype(np.float32) / (unbiased_v.numpy().astype(np.float32)**0.5 + self.eps))
