@@ -13,7 +13,23 @@ np.random.seed(0)
 
 def ResidualBlock(dim, hidden_dim, norm=nn.BatchNorm1d, drop_prob=0.1):
     ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
+    # main block. Recall that Sequential applies operations onto X sequentially
+    # which is what we want (as seen in the image)
+    block = nn.Sequential(ndl.nn.Linear(in_features=dim, out_features=hidden_dim),
+                  norm(hidden_dim),
+                  ndl.nn.ReLU(),
+                  ndl.nn.Dropout(drop_prob),
+                  ndl.nn.Linear(in_features=hidden_dim, out_features=dim),
+                  norm(dim),
+                  ndl.nn.ReLU()
+                  )
+    # residual link
+    res = ndl.nn.Residual(block)
+    # then, we need to apply RELU and to do this
+    # we need to create a sequential block that has res and then Relu
+    return nn.Sequential(res, ndl.nn.ReLU())
+
+
     ### END YOUR SOLUTION
 
 
