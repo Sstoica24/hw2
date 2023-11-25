@@ -7,6 +7,8 @@ import needle.data as data
 import numpy as np
 import time
 import os
+import pdb
+from tqdm import tqdm
 
 np.random.seed(0)
 # MY_DEVICE = ndl.backend_selection.cuda()
@@ -71,7 +73,8 @@ def epoch(dataloader, model, opt=None):
             tot_loss.append(loss.numpy())
     else:
         model.train()
-        for X, y in dataloader:
+        for X, y in tqdm(dataloader, position=0, leave=True):
+            opt.reset_grad()
             logits = model(X)
             loss = loss_fn(logits, y)
             tot_error += np.sum(logits.numpy().argmax(axis=1) != y.numpy())
@@ -79,11 +82,11 @@ def epoch(dataloader, model, opt=None):
             # we need to reset the grad because accumulation of past grads
             # and current grads will mess up the calculuation of the gradients
             # and result in an incorrect update to the params.
-            opt.reset_grad()
             # calculate the grads
             loss.backward()
             # use grads to perform update
             opt.step()
+            # pdb.set_trace()
     sample_nums = len(dataloader.dataset)
     return tot_error/sample_nums, np.mean(tot_loss)
     ### END YOUR SOLUTION
@@ -110,16 +113,17 @@ def train_mnist(
         test_loader = DataLoader(test_set, batch_size=batch_size, shuffle=False)
         #input must be 784 because an MNIST imgage is 28x28x1.
         model = MLPResNet(dim=784, hidden_dim=hidden_dim)
+        # pdb.set_trace()
         opt = optimizer(model.parameters(), lr=lr, weight_decay=weight_decay)
-        print("| Epoch | Train Accuracy | Train Loss | Test Accuracy| Test Loss |")
-        for __ in range(epochs):
+        # print("| Epoch | Train Accuracy | Train Loss | Test Accuracy| Test Loss |")
+        for ep in range(epochs):
             train_acc, train_loss = epoch(train_loader, model, opt=opt)
-        # evaluating the model ==> opt = None
+            print("| ", ep, " |", train_acc, " |", train_loss)
+        print("test acc, and test loss")
         test_acc, test_loss = epoch(test_loader, model, opt=None)
-        print("|  {:>4} |    {:.5f} |   {:.5f} |   {:.5f} |  {:.5f} |"\
-              .format(epoch, train_acc, train_loss, test_acc, test_loss))
+        print("|", epochs, " |","| ", test_acc, " |", test_loss, " |")
+        # evaluating the model ==> opt = None
         return np.array([train_acc, train_loss, test_acc, test_loss])
-
     ### END YOUR SOLUTION
 
 

@@ -22,8 +22,9 @@ class RandomFlipHorizontal(Transform):
         ### BEGIN YOUR SOLUTION
         if flip_img:
             # ::-1 is used to reverse the order in a specific axis/dim. We want to flip horizontally
-            # therefore, we reverse 1st dim.  Rather than providing a "beginning" and an "end" index, 
-            # it's telling Python to skip by every -1 objects in the array. It's effectively 
+            # therefore, we reverse 1st dim (playing around showed this).
+            # Rather than providing a "beginning" and an "end" index,
+            # it's telling Python to skip by every -1 objects in the array. It's effectively
             # reversing the array.
             return img[:, ::-1, :]
         else:

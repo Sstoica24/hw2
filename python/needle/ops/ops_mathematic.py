@@ -209,15 +209,27 @@ class BroadcastTo(TensorOp):
 
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
-        grad_a = out_grad
-        output_shape = out_grad.shape
-        input_shape = node.inputs[0].shape
-        for _ in range(len(output_shape) - len(input_shape)):
-            grad_a = summation(grad_a, axes = 0)
-        for i, dimension in enumerate(input_shape):
-            if dimension == 1:
-                grad_a = summation(grad_a, axes = i)
-        return reshape(grad_a, input_shape)
+        #problems with prior implementation: 
+        # 1) summing over an axis (1) which did not exist. Fixed problem, but then had:
+        # 2) array of size 5 (out_grad = (5,)) can't be reshaped to (1,1)
+        # so I looked online and found the following suggestion for an approach: 
+        ori_shape = node.inputs[0].shape
+        shrink_dims = [i for i in range(len(self.shape))]
+        for i, (ori, cur) in enumerate(zip(reversed(ori_shape), reversed(self.shape))):
+            if ori == cur:
+                shrink_dims[len(self.shape) - i - 1] = -1
+        
+        # cool thing I found online: filter returns a new iterable which filters
+        # out certain specific elements based on the condition provided.
+        # How it works: it works on each element of the iterable and tests wether
+        # the value satisfies the criteria given (is True or False). THE OUTPUT
+        # SEQUENCE WILL CONTAIN ONLY ELEMENTS FOR WHICH THE RETURN VALUE WAS TRUE.
+        # SO IN THIS CASE, shrink_dims WILL CONTAIN ONLY THE ELEMENTS x >= 0.
+        shrink_dims = tuple(filter(lambda x: x >= 0, shrink_dims))
+        # sum outgrad over the axes = shrink_dims in order to get out_grad to the 
+        # correct shape (similar to previous approach). Then, of course, reshape to be 
+        # size of ori_shape == original shape. 
+        return out_grad.sum(shrink_dims).reshape(ori_shape)
         ### END YOUR SOLUTION
 
 
@@ -285,7 +297,6 @@ class MatMul(TensorOp):
         ### BEGIN YOUR SOLUTION
         #ndl.Tensor(np.random.randn(5, 4)), ndl.Tensor(np.random.randn(4, 5))
         #outgrad = 5x5
-        print()
         a = node.inputs[0]
         b = node.inputs[1]
         grad_a = out_grad @ array_api.transpose(b)
@@ -362,8 +373,7 @@ class ReLU(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         a = node.inputs[0]
-        input_relu = relu(a).numpy()
-        return out_grad * Tensor(input_relu > 0)
+        return out_grad * Tensor(a.numpy() > 0)
 
 
 def relu(a):

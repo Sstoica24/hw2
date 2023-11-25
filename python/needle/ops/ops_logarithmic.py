@@ -24,6 +24,7 @@ def logsoftmax(a):
 
 
 class LogSumExp(TensorOp):
+    # smooth version of max
     def __init__(self, axes: Optional[tuple] = None):
         self.axes = axes
 

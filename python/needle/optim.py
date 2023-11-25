@@ -1,6 +1,7 @@
 """Optimization module"""
 import needle as ndl
 import numpy as np
+import pdb
 
 
 class Optimizer:
@@ -12,7 +13,11 @@ class Optimizer:
 
     def reset_grad(self):
         for p in self.params:
-            p.grad = None
+            #p.grad = None
+            if hasattr(p, 'grad'):
+                p.grad = p.grad * 0.
+            else:
+                p.grad = None
 
 
 class SGD(Optimizer):
@@ -64,7 +69,7 @@ class Adam(Optimizer):
         self.m = {}
         self.v = {}
 
-        # populate the dictonaries
+        # populate the dictionaries
         for w in self.params:
             self.m[w] = 0
             self.v[w] = 0
